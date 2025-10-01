@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 
+from models import Package, Dependency, Project
+
 app = FastAPI()
 
 @app.get("/")
