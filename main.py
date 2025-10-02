@@ -5,9 +5,11 @@ from fastapi import FastAPI, UploadFile
 from typing import Any
 
 from models import Package, Dependency, Project
+from settings import settings
 
 app = FastAPI()
 project_dict = defaultdict(Project)
+dependency_vulnerability = defaultdict(bool)
 
 @app.get("/")
 def read_root() -> str:
@@ -22,6 +24,7 @@ async def create_projects(name: str, description: str, requirement: UploadFile) 
             dependency = line.split("==")
             package = Package(name=dependency[0])
             dependencies[dependency[0]] = Dependency(package=package, version=dependency[1])
+            
     project_dict[name] = Project(name=name, description=description, dependencies=dependencies)
     return "Project successfully created!"
 
@@ -32,10 +35,10 @@ async def get_projects() -> dict[str, bool]:
         project_vulnerability[name] = False
         dependency_list = [dependency.model_dump() for dependency in project.dependencies.values()]
         
-        # prepare the curl request to OSV server
+        # prepare the curl request to OSV service
         headers = {"Content-Type": "application/json"}
         payload = {"queries": dependency_list}
-        response = requests.post("https://api.osv.dev/v1/querybatch", json=payload, headers=headers)
+        response = requests.post(settings.CHECK_MULTIPLE_PACKAGES, json=payload, headers=headers)
         # check the status code
         match response.status_code:
             case 200:
@@ -46,7 +49,7 @@ async def get_projects() -> dict[str, bool]:
             case _:
                 # raise runtime error if the status is not 200
                 raise RuntimeError(
-                    "Error occurred while sending request to OSV server. Status code: " + str(response.json()["code"]) + ". Error message: " + response.json()["message"]
+                    "Error occurred while sending request to OSV service. Status code: " + str(response.json()["code"]) + ". Error message: " + response.json()["message"]
                 )
         
     return project_vulnerability
@@ -61,10 +64,10 @@ async def get_project_dependencies(project_name: str) -> dict[str, bool]:
     project = project_dict[project_name]
     dependency_list = [dependency.model_dump() for dependency in project.dependencies.values()]
         
-    # prepare the curl request to OSV server
+    # prepare the curl request to OSV service
     headers = {"Content-Type": "application/json"}
     payload = {"queries": dependency_list}
-    response = requests.post("https://api.osv.dev/v1/querybatch", json=payload, headers=headers)
+    response = requests.post(settings.CHECK_MULTIPLE_PACKAGES, json=payload, headers=headers)
     # check the status code
     match response.status_code:
         case 200:
@@ -79,7 +82,7 @@ async def get_project_dependencies(project_name: str) -> dict[str, bool]:
         case _:
             # raise runtime error if the status is not 200
             raise RuntimeError(
-                "Error occurred while sending request to OSV server. Status code: " + str(response.json()["code"]) + ". Error message: " + response.json()["message"]
+                "Error occurred while sending request to OSV service. Status code: " + str(response.json()["code"]) + ". Error message: " + response.json()["message"]
             )
 
     return dependency_vulnerability
@@ -91,12 +94,12 @@ async def get_dependencies() -> dict[tuple[str, str], bool]:
 
         dependency_list = [ dependency for dependency in project.dependencies.values() if (dependency.package.name, dependency.version) not in dependency_vulnerability]
 
-        # if denpendency list is not empty, send request to OSV server for vulnerability tracking.
+        # if denpendency list is not empty, send request to OSV service for vulnerability tracking.
         if dependency_list:
-            # prepare the curl request to OSV server
+            # prepare the curl request to OSV service
             headers = {"Content-Type": "application/json"}
             payload = {"queries": [ dependency.model_dump() for dependency in dependency_list]}
-            response = requests.post("https://api.osv.dev/v1/querybatch", json=payload, headers=headers)
+            response = requests.post(settings.CHECK_MULTIPLE_PACKAGES, json=payload, headers=headers)
             # check the status code
             match response.status_code:
                 case 200:
@@ -111,7 +114,7 @@ async def get_dependencies() -> dict[tuple[str, str], bool]:
                 case _:
                     # raise runtime error if the status is not 200
                     raise RuntimeError(
-                        "Error occurred while sending request to OSV server. Status code: " + str(response.json()["code"]) + ". Error message: " + response.json()["message"]
+                        "Error occurred while sending request to OSV service. Status code: " + str(response.json()["code"]) + ". Error message: " + response.json()["message"]
                     )
 
     return dependency_vulnerability
@@ -124,8 +127,9 @@ async def get_dependencies(dependency_name: str, dependency_version: str) -> dic
         if (dependency_name in project.dependencies) and (project.dependencies[dependency_name].version == dependency_version):
             project_list.append(name)
 
+    # prepare the curl request to OSV service
     headers = {"Content-Type": "application/json"}
-    response = requests.post("https://api.osv.dev/v1/query", json=dependency.model_dump(), headers=headers)
+    response = requests.post(settings.CHECK_SINGLE_PACKAGE, json=dependency.model_dump(), headers=headers)
     # check the status code
     match response.status_code:
         case 200:
@@ -136,7 +140,7 @@ async def get_dependencies(dependency_name: str, dependency_version: str) -> dic
         case _:
             # raise runtime error if the status is not 200
             raise RuntimeError(
-                "Error occurred while sending request to OSV server. Status code: " + str(response.json()["code"]) + ". Error message: " + response.json()["message"]
+                "Error occurred while sending request to OSV service. Status code: " + str(response.json()["code"]) + ". Error message: " + response.json()["message"]
             )
     
     return {"usage": project_list, "vulnerabilities": vulnerabilities}

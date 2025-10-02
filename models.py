@@ -1,8 +1,9 @@
 from pydantic import BaseModel
+from settings import settings
 
 class Package(BaseModel):
     name: str
-    ecosystem: str = "PyPI"
+    ecosystem: str = settings.ECOSYSTEM
 
 class Dependency(BaseModel):
     package: Package
