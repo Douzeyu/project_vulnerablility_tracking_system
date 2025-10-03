@@ -1,0 +1,11 @@
+# Ignore these files in container.
+__pycache__/
+.dockerignore
+.env
+.env.sample
+.git
+.gitignore
+.python-version
+docker-compose*
+Dockerfile
+README.md
