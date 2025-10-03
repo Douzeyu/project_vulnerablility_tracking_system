@@ -54,7 +54,7 @@ Once the image is built and the container running, you can access the project AP
 eg:
 
 ```shell
-curl --location --request POST 'http://localhost:8000/project?project_name=test2&project_description=test' --form 'requirement=@"/F:/requirement2.txt"'
+curl --location --request POST 'http://localhost:8000/project?project_name={YOUR_PROJECT_NAME}&project_description={YOUR_PROJECT_DESCRIPTION}' --form 'requirement=@"{REQUIREMENT_FILE_PATH}"'
 ```
 
 - Get projects: List users’ projects. Identify vulnerable projects.
@@ -70,7 +70,7 @@ curl --location --request GET 'http://localhost:8000/project/'
 eg:
 
 ```shell
-curl --location --request GET 'http://localhost:8000/project/{your_project_name}'
+curl --location --request GET 'http://localhost:8000/project/{YOUR_PROJECT_NAME}'
 ```
  
 ### 2.Dependency Endpoints:
@@ -88,5 +88,5 @@ curl --location --request GET 'http://localhost:8000/dependency/'
 eg:
 
 ```shell
-curl --location --request GET 'http://localhost:8000/dependency/{dependency_name}/{dependency_version}'
+curl --location --request GET 'http://localhost:8000/dependency/{DEPENDENCY_NAME}/{DEPENDENCY_VERSION}'
 ```
