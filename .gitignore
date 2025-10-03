@@ -4,3 +4,4 @@ __pycache__/
 # Environments
 .venv/
 .env
+.python-version
